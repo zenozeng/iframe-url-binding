@@ -1,37 +1,36 @@
 (function() {
-    var bindings = [
-      ["http://localhost/iframe-url-binding/#vs/", "http://127.0.0.1/vs/"],
-      ["http://localhost/iframe-url-binding/#color/", "http://127.0.0.1/color/"]
-    ];
-    var defaultBinding = ["http://localhost/iframe-url-binding/", "http://127.0.0.1/"];
-    var onUrlChange = function(url) {
-        console.log(url);
-        var binding = bindings.filter(function(elem) {
-            return url.indexOf(elem[1]) > -1;
+
+    var sync = function(url, direction) {
+        console.log(url, direction);
+
+        var from, to; // index
+        if(direction === "fromOutside") {
+            from = 0;
+            to = 1;
+        } else {
+            from = 1;
+            to = 0;
+        }
+
+        var binding = window.bindings.filter(function(elem) {
+            return url.indexOf(elem[from]) > -1;
         })[0];
-        binding = binding || defaultBinding;
-        url = binding[0] + url.split(binding[1]).pop();
-        window.history.pushState({}, "", url);
-        window.location.href = url;
+        binding = binding || window.defaultBinding;
+        url = binding[to] + url.split(binding[from]).pop();
+
+        if(direction === "fromOutside") {
+            window.document.getElementById("main").src = url;
+        } else {
+            window.history.pushState({}, "", url);
+        }
     }
-    var createIframe = function() {
-        var iframe = document.createElement('iframe');
-        var url = window.location.href;
-        var binding = bindings.filter(function(elem) {
-            return url.indexOf(elem[0]) > -1;
-        })[0];
-        binding = binding || defaultBinding;
-        url = binding[1] + url.split(binding[0]).pop();
-        iframe.frameBorder = 0;
-        iframe.scrolling = 'auto';
-        iframe.width = '100%';
-        iframe.height = '100%';
-        iframe.src = url;
-        document.body.appendChild(iframe);
-    }
-    createIframe();
+
     window.addEventListener("message", function(event) {
         var url = event.data;
-        onUrlChange(url);
+        sync(url, "fromInside");
     });
+    window.onhashchange = function() {
+        sync(window.location.href, "fromOutside");
+    };
+    sync(window.location.href, "fromOutside");
 })();
